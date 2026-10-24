@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><UseWPF>true</UseWPF>
+    <AssemblyName>DevOpsClient</AssemblyName><Product>Orbit · Azure DevOps</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DevOpsClient.Core\DevOpsClient.Core.csproj" />
+    <PackageReference Include="Telerik.Windows.Controls.GridView.for.Wpf.Xaml" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Controls.Input.for.Wpf.Xaml" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Licensing" Version="1.9.3" />
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
+

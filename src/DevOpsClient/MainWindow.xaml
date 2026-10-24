@@ -1,0 +1,60 @@
+<Window x:Class="DevOpsClient.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:telerik="http://schemas.telerik.com/2008/xaml/presentation" Background="{DynamicResource ShellBackground}" Foreground="{DynamicResource Ink}" FontFamily="Segoe UI" FontSize="13" Title="Orbit · Azure DevOps" Width="1480" Height="940" MinWidth="1080" MinHeight="720" WindowStartupLocation="CenterScreen" WindowState="Maximized">
+ <Grid Background="{DynamicResource ShellBackground}">
+  <Grid.ColumnDefinitions><ColumnDefinition Width="190"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <Border Background="{DynamicResource SidebarBackground}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,1,0">
+   <DockPanel Margin="17,24,17,18">
+    <StackPanel DockPanel.Dock="Top">
+     <StackPanel Orientation="Horizontal" Margin="12,0,0,30"><Border Width="32" Height="32" CornerRadius="10" Background="#77E0BC"><TextBlock Text="◉" Foreground="#142A22" FontSize="25" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><TextBlock Text="orbit" FontSize="25" FontWeight="SemiBold" Margin="11,-2,0,0"/></StackPanel>
+     <Border Background="{DynamicResource SurfaceRaised}" CornerRadius="8" Padding="12" Margin="0,0,0,28"><StackPanel><TextBlock x:Name="ProjectLabel" Text="Meridian" FontWeight="SemiBold" FontSize="14"/><TextBlock Text="AZURE DEVOPS WORKSPACE" FontSize="9" Foreground="{DynamicResource Muted}" Margin="0,5,0,0"/></StackPanel></Border>
+     <TextBlock Text="WORK" Foreground="#67798D" FontSize="10" FontWeight="SemiBold" Margin="15,0,0,9"/>
+     <Button x:Name="AssignedNav" Content="▤    Assigned to me" Tag="Assigned to me" Click="Navigate" Style="{StaticResource Nav}"/>
+     <Button x:Name="AllNav" Content="☷    All work" Tag="All work" Click="Navigate" Style="{StaticResource Nav}"/>
+     <Button x:Name="RecentNav" Content="◷    Recently viewed" Tag="Recently viewed" Click="Navigate" Style="{StaticResource Nav}"/>
+     <TextBlock Text="VIEWS" Foreground="#67798D" FontSize="10" FontWeight="SemiBold" Margin="15,24,0,9"/>
+     <Button x:Name="OverviewNav" Content="◈    Overview" Tag="Overview" Click="Navigate" Style="{StaticResource Nav}"/>
+     <Button x:Name="BoardNav" Content="▥    Board" Tag="Board" Click="Navigate" Style="{StaticResource Nav}"/>
+     <Button x:Name="WorkNav" Content="☷    Table view" Tag="Work items" Click="Navigate" Style="{StaticResource Nav}"/>
+     <Button x:Name="DashboardNav" Content="▦    Dashboards" Tag="Dashboards" Click="Navigate" Style="{StaticResource Nav}"/>
+    </StackPanel>
+    <StackPanel DockPanel.Dock="Bottom">
+     <Border Background="{DynamicResource Accent}" Opacity="0.16" CornerRadius="8" Padding="13" Margin="0,0,0,18"><StackPanel><TextBlock Text="Open by number" Foreground="{DynamicResource Accent}" FontWeight="SemiBold"/><TextBlock Text="Ctrl+G" Foreground="{DynamicResource Muted}" FontSize="11" Margin="0,7,0,0"/></StackPanel></Border>
+     <Button x:Name="SettingsNav" Content="⚙    Settings" Tag="Settings" Click="Navigate" Style="{StaticResource Nav}"/>
+     <TextBlock Text="ORBIT  /  DESKTOP PREVIEW" FontSize="9" Foreground="#647589" Margin="14,20,0,0"/>
+    </StackPanel>
+    <Grid/>
+   </DockPanel>
+  </Border>
+  <Grid Grid.Column="1">
+   <Grid.RowDefinitions><RowDefinition Height="58"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="34"/></Grid.RowDefinitions>
+   <Border BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="28,0">
+    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+     <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><TextBlock Text="Workspace" Foreground="#93A1B3"/><TextBlock Text=" / " Foreground="#526275" Margin="12,0"/><TextBlock x:Name="Breadcrumb" Text="Assigned to me"/></StackPanel>
+     <Border Grid.Column="1" Background="{DynamicResource SurfaceRaised}" CornerRadius="12" Padding="11,5" VerticalAlignment="Center" Margin="0,0,18,0"><TextBlock x:Name="ModeLabel" Text="●  DEMO WORKSPACE" Foreground="{DynamicResource Accent}" FontSize="10" FontWeight="SemiBold"/></Border>
+     <Button x:Name="RefreshButton" Grid.Column="2" Content="↻  Refresh" Click="RefreshClick" VerticalAlignment="Center"/>
+    </Grid>
+   </Border>
+   <Border x:Name="Notice" Grid.Row="1" Background="#303024" Padding="28,11" Visibility="Collapsed"><TextBlock x:Name="NoticeText" Foreground="#E7CF98" TextWrapping="Wrap"/></Border>
+   <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition x:Name="InspectorColumn" Width="0"/></Grid.ColumnDefinitions>
+    <Grid Margin="18,16,18,12"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+     <Grid Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel><TextBlock x:Name="PageTitle" Text="A clear view of what’s next." FontSize="20" FontWeight="SemiBold"/><TextBlock x:Name="PageSubtitle" Text="Your team's delivery, without the noise." Foreground="#93A1B3" Margin="0,8,0,0"/></StackPanel>
+      <Button x:Name="NewButton" Grid.Column="1"  Style="{StaticResource Primary}" VerticalAlignment="Center" Click="NewClick" Margin="16,0,0,0"><TextBlock Text="＋  New work item" Foreground="#10251F" FontWeight="SemiBold"/></Button>
+     </Grid>
+     <Grid x:Name="FilterBar" Grid.Row="1" Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="160"/><ColumnDefinition Width="160"/></Grid.ColumnDefinitions>
+      <Grid><TextBox x:Name="SearchBox" ToolTip="Search title, ID, assignee or tags · Ctrl+K" TextChanged="FilterChanged" VerticalContentAlignment="Center"/><TextBlock Text="Search work items, people, or tags…                      Ctrl+K" Foreground="#71859C" Margin="12,0" VerticalAlignment="Center" IsHitTestVisible="False"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value=""><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock></Grid>
+      <telerik:RadComboBox x:Name="TypeFilter" Grid.Column="1" Margin="12,0,0,0" SelectionChanged="FilterChanged"/>
+      <telerik:RadComboBox x:Name="OwnerFilter" Grid.Column="2" Margin="12,0,0,0" SelectionChanged="FilterChanged"/>
+     </Grid>
+     <ContentControl x:Name="PageContent" Grid.Row="2" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+    </Grid>
+    <Border Grid.Column="1" x:Name="InspectorBorder" Background="#161F2A" BorderBrush="#293341" BorderThickness="1,0,0,0"><ScrollViewer><StackPanel x:Name="Inspector" Margin="22"/></ScrollViewer></Border>
+   </Grid>
+   <Border Grid.Row="3" BorderBrush="{DynamicResource Line}" BorderThickness="0,1,0,0" Padding="28,0"><Grid><TextBlock x:Name="StatusText" Text="Getting your workspace ready…" FontSize="11" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/><TextBlock Text="Ctrl+K  Search     Ctrl+G  Open     F5  Refresh" FontSize="10" Foreground="{DynamicResource Muted}" HorizontalAlignment="Right" VerticalAlignment="Center"/></Grid></Border>
+  </Grid>
+ </Grid>
+</Window>
+
+
+
+
+

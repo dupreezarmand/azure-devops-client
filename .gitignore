@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+.vs/
+artifacts/
+appsettings.local.json
+telerik-license.txt
+TelerikLicense.cs
+*.user
+probe.txt
+appsettings.local.json.tmp
