@@ -6,8 +6,15 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\DevOpsClient.Core\DevOpsClient.Core.csproj" />
-    <PackageReference Include="Telerik.Windows.Controls.GridView.for.Wpf.Xaml" Version="2026.3.812" />
-    <PackageReference Include="Telerik.Windows.Controls.Input.for.Wpf.Xaml" Version="2026.3.812" />
+    <!-- NoXaml is intentional: Telerik's implicit-style model is required for reliable runtime theme switching. -->
+    <PackageReference Include="Telerik.Windows.Controls.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Controls.GridView.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Controls.Input.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Controls.RichTextBox.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Themes.Fluent.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Themes.Windows11.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Themes.Material.for.Wpf" Version="2026.3.812" />
+    <PackageReference Include="Telerik.Windows.Themes.Office2019.for.Wpf" Version="2026.3.812" />
     <PackageReference Include="Telerik.Licensing" Version="1.9.3" />
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

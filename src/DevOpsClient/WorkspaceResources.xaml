@@ -1,25 +1,31 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
- <Style x:Key="QueueList" TargetType="ListBox">
+ <Style x:Key="QueueList" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
   <Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="BorderThickness" Value="0"/><Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/><Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBox"><ScrollViewer Focusable="False" CanContentScroll="True"><ItemsPresenter/></ScrollViewer></ControlTemplate></Setter.Value></Setter>
  </Style>
- <Style x:Key="QueueRow" TargetType="ListBoxItem">
-  <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="13,12"/><Setter Property="BorderThickness" Value="3,0,0,1"/><Setter Property="BorderBrush" Value="{DynamicResource Line}"/><Setter Property="Background" Value="Transparent"/>
-  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Row" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="#1F2B38"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="#25384B"/><Setter TargetName="Row" Property="BorderBrush" Value="#77CBE0"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Row" Property="BorderBrush" Value="#77CBE0"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+ <!-- ListBoxItem is covered by Telerik's System.Windows.xaml dictionary; retain only the queue's density settings. -->
+ <Style x:Key="QueueRow" TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+  <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="8,4"/>
  </Style>
   <DataTemplate x:Key="QueueItem">
   <StackPanel>
-   <Grid><TextBlock Text="{Binding Id, StringFormat='#{0}'}" Foreground="{Binding KindColor}" FontSize="12" FontWeight="SemiBold"/><TextBlock Text="{Binding State}" Foreground="#B0C3D5" FontSize="11" HorizontalAlignment="Right"/></Grid>
-   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="14" FontWeight="SemiBold" Margin="0,7,0,8" Foreground="#EAF0F6"/>
-   <TextBlock FontSize="11" Foreground="#9EB0C3"><Run Text="{Binding Type}"/><Run Text=" · "/><Run Text="{Binding AssignedTo}"/></TextBlock>
+   <Grid><TextBlock Text="{Binding Id, StringFormat='#{0}'}" Foreground="{Binding KindColor}" FontSize="12" FontWeight="SemiBold"/><TextBlock Text="{Binding State}" Foreground="{DynamicResource QueueState}" FontSize="11" HorizontalAlignment="Right"/></Grid>
+   <TextBlock Text="{Binding Title}" TextWrapping="Wrap" FontSize="14" FontWeight="SemiBold" Margin="0,3,0,4" Foreground="{DynamicResource QueueTitle}"/>
+   <TextBlock FontSize="11" Foreground="{DynamicResource QueueMeta}"><Run Text="{Binding Type}"/><Run Text=" · "/><Run Text="{Binding AssignedTo}"/></TextBlock>
   </StackPanel>
  </DataTemplate>
+ <!-- TabControl is not one of the native controls covered by Telerik's System.Windows dictionary, so keep a small shell-specific template. -->
  <Style TargetType="TabControl">
   <Setter Property="Background" Value="{DynamicResource Surface}"/><Setter Property="BorderThickness" Value="0"/>
-  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl"><DockPanel><TabPanel DockPanel.Dock="Top" IsItemsHost="True" Margin="0,0,0,16"/><ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/></DockPanel></ControlTemplate></Setter.Value></Setter>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabControl"><DockPanel><TabPanel DockPanel.Dock="Top" IsItemsHost="True" Margin="0,0,0,5"/><ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/></DockPanel></ControlTemplate></Setter.Value></Setter>
  </Style>
  <Style TargetType="TabItem">
-  <Setter Property="Foreground" Value="#93A8BF"/><Setter Property="Padding" Value="12,10"/>
-  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="Tab" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="{TemplateBinding Padding}" Margin="0,0,8,0"><ContentPresenter ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="BorderBrush" Value="#77CBE0"/><Setter Property="Foreground" Value="#EAF0F6"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Tab" Property="Background" Value="#25384B"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+  <Setter Property="Foreground" Value="{DynamicResource Muted}"/><Setter Property="Padding" Value="7,4"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TabItem"><Border x:Name="Tab" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="{TemplateBinding Padding}" Margin="0,0,4,0"><ContentPresenter ContentSource="Header" TextElement.Foreground="{TemplateBinding Foreground}"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Tab" Property="BorderBrush" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/></Trigger><Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Tab" Property="Background" Value="{DynamicResource SurfaceRaised}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="MarkdownEditor" TargetType="TextBox">
+  <Setter Property="Background" Value="{DynamicResource InputBackground}"/><Setter Property="Foreground" Value="{DynamicResource Ink}"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Border}"/><Setter Property="BorderThickness" Value="1"/>
+  <Setter Property="CaretBrush" Value="{DynamicResource Ink}"/><Setter Property="SelectionBrush" Value="{DynamicResource Selection}"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="TextBox"><Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="3"><ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" Focusable="False"/></Border><ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Accent}"/><Setter TargetName="Frame" Property="BorderThickness" Value="2"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.55"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
  </Style>
 </ResourceDictionary>

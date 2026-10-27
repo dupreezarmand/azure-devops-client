@@ -38,4 +38,25 @@ public sealed class DemoProjectServiceTests
         Assert.Equal(3, first.Comments.Count + second.Comments.Count);
         Assert.Null(second.ContinuationToken);
     }
+
+    [Fact]
+    public async Task Description_and_comment_edits_persist_for_the_demo_session()
+    {
+        using var demo = new DemoProjectService();
+        var details = await demo.GetDetailsAsync(1041, default);
+
+        var updated = await demo.UpdateAsync(details.Item,
+            new(details.Item.Title, details.Item.State, details.Item.Tags, details.Item.Priority,
+                Description: "# Updated description", AcceptanceCriteria: "- Verified"), default);
+        var added = await demo.AddCommentAsync(1041, "New **Markdown** comment", default);
+        var edited = await demo.UpdateCommentAsync(1041, added, "Edited **Markdown** comment", default);
+
+        var refreshed = await demo.GetDetailsAsync(1041, default);
+        var comments = await demo.GetCommentsAsync(1041, null, default);
+        var remaining = await demo.GetCommentsAsync(1041, comments.ContinuationToken, default);
+        Assert.Equal("# Updated description", refreshed.Item.Description);
+        Assert.Equal("- Verified", refreshed.Item.AcceptanceCriteria);
+        Assert.Equal(2, updated.Revision);
+        Assert.Contains(comments.Comments.Concat(remaining.Comments), comment => comment.Id == edited.Id && comment.EditableText == "Edited **Markdown** comment");
+    }
 }

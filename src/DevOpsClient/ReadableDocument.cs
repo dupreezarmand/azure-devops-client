@@ -71,10 +71,10 @@ internal static class ReadableDocument
                     if (string.IsNullOrWhiteSpace(text) && paragraph.Inlines.Count == 0) continue;
                     var run = new Run(text) { FontWeight = bold > 0 ? FontWeights.SemiBold : FontWeights.Normal, FontStyle = italic > 0 ? FontStyles.Italic : FontStyles.Normal,
                         FontFamily = new FontFamily(code > 0 || pre > 0 ? "Cascadia Mono, Consolas" : UiAppearance.FontFamilyName), FontSize = UiAppearance.Size(code > 0 || pre > 0 ? 12 : 14),
-                        Background = code > 0 || pre > 0 ? new SolidColorBrush(Color.FromRgb(29, 42, 56)) : Brushes.Transparent };
+                        Background = code > 0 || pre > 0 ? CodeBrush : Brushes.Transparent };
                     if (linkTarget != null && openLink != null)
                     {
-                        var target = linkTarget.AbsoluteUri; var link = new Hyperlink(run) { Foreground = new SolidColorBrush(Color.FromRgb(146, 197, 229)), NavigateUri = linkTarget };
+                        var target = linkTarget.AbsoluteUri; var link = new Hyperlink(run) { Foreground = LinkBrush, NavigateUri = linkTarget };
                         link.RequestNavigate += (_, e) => { openLink(target); e.Handled = true; }; paragraph.Inlines.Add(link);
                     }
                     else paragraph.Inlines.Add(run);
@@ -146,7 +146,7 @@ internal static class ReadableDocument
             if (quote.Success)
             {
                 FlushParagraph();
-                var quoteParagraph = new Paragraph { Margin = new Thickness(14, 0, 0, 10), BorderBrush = new SolidColorBrush(Color.FromRgb(93, 124, 150)), BorderThickness = new Thickness(2, 0, 0, 0), Padding = new Thickness(10, 0, 0, 0) };
+                var quoteParagraph = new Paragraph { Margin = new Thickness(14, 0, 0, 10), BorderBrush = UiAppearance.Brush("#5D7C96"), BorderThickness = new Thickness(2, 0, 0, 0), Padding = new Thickness(10, 0, 0, 0) };
                 AddInline(quoteParagraph, quote.Groups[1].Value, openLink);
                 document.Blocks.Add(quoteParagraph);
                 continue;

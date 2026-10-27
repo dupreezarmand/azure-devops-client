@@ -80,6 +80,31 @@ public sealed class AzureDevOpsServiceIntegrationTests
         Assert.Equal(2, updated.Revision);
     }
 
+    [Fact]
+    public async Task Comment_create_and_edit_use_real_http_pipeline_and_markdown_format()
+    {
+        await using var server = await LoopbackServer.Start(request =>
+        {
+            if (request.Method == "POST" && request.Target.Contains("comments?", StringComparison.Ordinal))
+                return JsonResponse("{\"id\":7,\"version\":1,\"text\":\"Created **comment**\",\"format\":\"markdown\"}");
+            if (request.Method == "PATCH" && request.Target.Contains("comments/7?", StringComparison.Ordinal))
+                return JsonResponse("{\"id\":7,\"version\":2,\"text\":\"Edited **comment**\",\"format\":\"markdown\"}");
+            return NotFound();
+        });
+
+        using var service = new AzureDevOpsService(Live(), endpointOverride: server.BaseUri);
+        var created = await service.AddCommentAsync(8001, "Created **comment**", default);
+        var edited = await service.UpdateCommentAsync(8001, created, "Edited **comment**", default);
+
+        var createRequest = Assert.Single(server.Requests, request => request.Method == "POST");
+        var editRequest = Assert.Single(server.Requests, request => request.Method == "PATCH");
+        Assert.Contains("format=markdown", createRequest.Target);
+        Assert.Contains("format=markdown", editRequest.Target);
+        Assert.Contains("Created **comment**", createRequest.Body);
+        Assert.Contains("Edited **comment**", editRequest.Body);
+        Assert.Equal(2, edited.Version);
+    }
+
     private static ClientSettings Live() => new() { ProjectUrl = "https://dev.azure.com/org/My%20Project", PersonalAccessToken = "integration-token", UseDemoData = false };
     private static object Item(int id, string title = "Integration item", int revision = 1) => new { id, rev = revision, fields = new Dictionary<string, object> { ["System.Title"] = title, ["System.WorkItemType"] = "Task", ["System.State"] = "Active", ["System.AssignedTo"] = new { displayName = "Integration User" }, ["System.ChangedDate"] = "2026-10-24T10:00:00Z" } };
     private static WireResponse JsonResponse(string body) => new(200, "application/json", body);

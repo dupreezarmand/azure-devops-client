@@ -8,6 +8,7 @@ public sealed record ClientSettings
     public string Team { get; init; } = "";
     public bool UseDemoData { get; init; } = true;
     public int MaxWorkItems { get; init; } = 500;
+    public string ThemeFamily { get; init; } = "Fluent";
     public string Theme { get; init; } = "Dark";
     public string FontFamily { get; init; } = "Segoe UI";
     public double FontScale { get; init; } = 1.0;
@@ -26,6 +27,7 @@ public sealed record ClientSettings
     public void Validate()
     {
         if (MaxWorkItems is < 1 or > 2000) throw new ArgumentException("Work item limit must be between 1 and 2000.");
+        if (ThemeFamily is not ("Fluent" or "Windows 11" or "Material" or "Office 2019")) throw new ArgumentException("Choose a supported Telerik theme family.");
         if (Theme is not ("Dark" or "Light" or "High contrast")) throw new ArgumentException("Choose a supported theme.");
         if (FontScale is < 0.8 or > 1.8) throw new ArgumentException("Font scale must be between 80% and 180%.");
         if (string.IsNullOrWhiteSpace(FontFamily)) throw new ArgumentException("Choose a font family.");
@@ -65,6 +67,7 @@ public sealed record WorkItem
     public string Iteration { get; init; } = "";
     public string Tags { get; init; } = "";
     public string Description { get; init; } = "";
+    public string DescriptionField { get; init; } = "System.Description";
     public string AcceptanceCriteria { get; init; } = "";
     public int Priority { get; init; } = 2;
     public double Points { get; init; }
@@ -79,13 +82,15 @@ public sealed record WorkItemType(string Name, IReadOnlyList<StateDefinition> St
 public sealed record DashboardInfo(string Id, string Name, string Description, string Url);
 public sealed record ProjectSnapshot(IReadOnlyList<WorkItem> Items, IReadOnlyList<WorkItemType> Types,
     IReadOnlyList<DashboardInfo> Dashboards, string? DashboardWarning = null, bool LimitReached = false);
-public sealed record WorkItemEdit(string Title, string State, string Tags, int Priority);
+public sealed record WorkItemEdit(string Title, string State, string Tags, int Priority, string? Description = null, string? AcceptanceCriteria = null);
 public interface IProjectService : IDisposable
 {
     Task<ProjectSnapshot> LoadAsync(CancellationToken token);
     Task<WorkQueue> LoadAssignedAsync(CancellationToken token);
     Task<WorkItemDetails> GetDetailsAsync(int id, CancellationToken token);
     Task<CommentPage> GetCommentsAsync(int id, string? continuationToken, CancellationToken token);
+    Task<WorkItemComment> AddCommentAsync(int id, string text, CancellationToken token);
+    Task<WorkItemComment> UpdateCommentAsync(int id, WorkItemComment comment, string text, CancellationToken token);
     Task<WorkItem> UpdateAsync(WorkItem item, WorkItemEdit edit, CancellationToken token);
     Task<WorkItem> CreateAsync(string type, string title, CancellationToken token);
 }
@@ -93,7 +98,8 @@ public interface IProjectService : IDisposable
 public sealed record WorkQueue(IReadOnlyList<WorkItem> Items, bool LimitReached = false);
 public sealed record RelatedWorkItem(int Id, string Relationship, WorkItem? Item);
 public sealed record WorkItemDetails(WorkItem Item, IReadOnlyList<RelatedWorkItem> Relations, string? RelationsWarning = null);
-public sealed record WorkItemComment(int Id, string Author, DateTimeOffset CreatedAt, string Text, bool IsHtml);
+public sealed record WorkItemComment(int Id, string Author, DateTimeOffset CreatedAt, string Text, bool IsHtml,
+    string EditableText = "", bool IsMarkdown = false, int Version = 1);
 public sealed record CommentPage(IReadOnlyList<WorkItemComment> Comments, string? ContinuationToken, int TotalCount);
 
 

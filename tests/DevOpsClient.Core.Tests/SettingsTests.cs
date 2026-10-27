@@ -60,9 +60,22 @@ public sealed class SettingsTests
         var settings = new ClientSettings();
 
         Assert.True(settings.UseDemoData);
+        Assert.Equal("Fluent", settings.ThemeFamily);
         Assert.Equal("Dark", settings.Theme);
         Assert.Equal("Segoe UI", settings.FontFamily);
         Assert.Equal(1.0, settings.FontScale);
+        settings.Validate();
+    }
+
+    [Theory]
+    [InlineData("Fluent")]
+    [InlineData("Windows 11")]
+    [InlineData("Material")]
+    [InlineData("Office 2019")]
+    public void Supported_theme_families_validate(string themeFamily)
+    {
+        var settings = new ClientSettings { ThemeFamily = themeFamily };
+
         settings.Validate();
     }
 
@@ -91,17 +104,26 @@ public sealed class SettingsTests
     }
 
     [Fact]
+    public void Invalid_theme_family_is_rejected()
+    {
+        var settings = new ClientSettings { ThemeFamily = "Solarized" };
+
+        Assert.Throws<ArgumentException>(settings.Validate);
+    }
+
+    [Fact]
     public void Appearance_settings_round_trip_through_local_override()
     {
         var folder = Path.Combine(Path.GetTempPath(), "orbit-xunit-" + Guid.NewGuid());
         Directory.CreateDirectory(folder);
         try
         {
-            var expected = new ClientSettings { Theme = "High contrast", FontFamily = "Verdana", FontScale = 1.55 };
+            var expected = new ClientSettings { ThemeFamily = "Office 2019", Theme = "High contrast", FontFamily = "Verdana", FontScale = 1.55 };
             SettingsStore.Save(folder, expected);
 
             var actual = SettingsStore.Load(folder);
             Assert.Equal(expected.Theme, actual.Theme);
+            Assert.Equal(expected.ThemeFamily, actual.ThemeFamily);
             Assert.Equal(expected.FontFamily, actual.FontFamily);
             Assert.Equal(expected.FontScale, actual.FontScale);
         }

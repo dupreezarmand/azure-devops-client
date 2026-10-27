@@ -29,9 +29,10 @@ public partial class MainWindow : Window
     private static readonly DependencyProperty BaseFontSizeProperty = DependencyProperty.RegisterAttached("BaseFontSize", typeof(double), typeof(MainWindow), new FrameworkPropertyMetadata(0d));
     private static Brush Brush(string value) => UiAppearance.Brush(value);
     private static TextBlock Text(string value, double size = 13, string color = "#EAF0F6", bool bold = false) => new() { Text = value, FontSize = size, FontFamily = new FontFamily(UiAppearance.FontFamilyName), Foreground = Brush(color), FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal, TextWrapping = TextWrapping.Wrap };
-    private static Border Card(UIElement child, string background = "#19222E", Thickness? padding = null) => new() { Child = child, Background = Brush(background), BorderBrush = Brush("#2A3645"), BorderThickness = new(1), CornerRadius = new(10), Padding = padding ?? new(20) };
+    // Keep the shell information-dense by default. Font scaling remains independent so users can enlarge text without restoring excessive chrome.
+    private static Border Card(UIElement child, string background = "#19222E", Thickness? padding = null) => new() { Child = child, Background = Brush(background), BorderBrush = Brush("#2A3645"), BorderThickness = new(1), CornerRadius = new(8), Padding = padding ?? new(14) };
     private static StackPanel Stack(params UIElement[] children) { var p = new StackPanel(); foreach (var child in children) p.Children.Add(child); return p; }
-    private static TextBlock Label(string value) { var t = Text(value.ToUpperInvariant(), 10, "#93A1B3", true); t.Margin = new(0, 18, 0, 8); return t; }
+    private static TextBlock Label(string value) { var t = Text(value.ToUpperInvariant(), 10, "#93A1B3", true); t.Margin = new(0, 12, 0, 5); return t; }
     private Button ActionButton(string title, Action action, bool primary = false)
     {
         var b = new Button { Content = primary ? Text(title, 13, "#10251F", true) : title, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)FindResource(primary ? "Primary" : typeof(Button)) };
@@ -41,13 +42,13 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         WindowPlacementStore.Restore(this, AppContext.BaseDirectory);
-        UiAppearance.Apply(settings);
+        UiAppearance.Apply(settings); RefreshShellThemeStyles();
         ApplyFontScale();
         SourceInitialized += (_, _) => { var enabled = 1; _ = DwmSetWindowAttribute(new System.Windows.Interop.WindowInteropHelper(this).Handle, 20, ref enabled, sizeof(int)); };
         Loaded += async (_, _) =>
         {
             ready = true;
-            try { settings = Environment.GetCommandLineArgs().Contains("--smoke") ? new() : SettingsStore.Load(AppContext.BaseDirectory); settings.Validate(); UiAppearance.Apply(settings); ApplyFontScale(); }
+            try { settings = Environment.GetCommandLineArgs().Contains("--smoke") ? new() : SettingsStore.Load(AppContext.BaseDirectory); settings.Validate(); UiAppearance.Apply(settings); RefreshShellThemeStyles(); ApplyFontScale(); }
             catch { ShowNotice("Connection settings could not be read or validated. Review Settings to continue."); page = "Settings"; Render(); return; }
             await ConnectAsync();
             if (Environment.GetCommandLineArgs().Contains("--smoke")) await SmokeAsync();
@@ -131,6 +132,13 @@ public partial class MainWindow : Window
         if (busy || !DiscardDraft()) return;
         if (next != page) { CancelReading(); readingDetails = null; }
         page = next; CloseInspector(); Render();
+    }
+    private void RefreshShellThemeStyles()
+    {
+        var nav = (Style)FindResource("Nav");
+        AssignedNav.Style = nav; AllNav.Style = nav; RecentNav.Style = nav; OverviewNav.Style = nav;
+        BoardNav.Style = nav; WorkNav.Style = nav; DashboardNav.Style = nav; SettingsNav.Style = nav;
+        NewButton.Style = (Style)FindResource("Primary");
     }
     private void Render()
     {
@@ -279,7 +287,7 @@ public partial class MainWindow : Window
     }
     private UIElement BuildWorkItems()
     {
-        var grid = new RadGridView { ItemsSource = Filtered().ToArray(), AutoGenerateColumns = false, IsReadOnly = true, ShowGroupPanel = false, RowIndicatorVisibility = Visibility.Collapsed, Background = Brush("#19222E"), Foreground = Brush("#EAF0F6"), BorderBrush = Brush("#293341"), RowHeight = 47, FontSize = 13, SelectionMode = SelectionMode.Single, CanUserFreezeColumns = false };
+        var grid = new RadGridView { ItemsSource = Filtered().ToArray(), AutoGenerateColumns = false, IsReadOnly = true, ShowGroupPanel = false, RowIndicatorVisibility = Visibility.Collapsed, Background = Brush("#19222E"), Foreground = Brush("#EAF0F6"), BorderBrush = Brush("#293341"), RowHeight = 39, FontSize = 13, SelectionMode = SelectionMode.Single, CanUserFreezeColumns = false };
         var rowStyle = new Style(typeof(Telerik.Windows.Controls.GridView.GridViewRow)); rowStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#19222E"))); rowStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brush("#EAF0F6"))); grid.RowStyle = rowStyle;
         var headerStyle = new Style(typeof(Telerik.Windows.Controls.GridView.GridViewHeaderCell)); headerStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brush("#243142"))); headerStyle.Setters.Add(new Setter(Control.ForegroundProperty, Brush("#A8B9CD")));
         grid.Resources.Add(typeof(Telerik.Windows.Controls.GridView.GridViewHeaderCell), headerStyle);
@@ -312,6 +320,7 @@ public partial class MainWindow : Window
         var team = new TextBox { Text = settings.Team };
         var limit = new TextBox { Text = settings.MaxWorkItems.ToString() };
         var demo = new CheckBox { Content = "Use the demo workspace", IsChecked = settings.UseDemoData };
+        var themeFamily = new RadComboBox { ItemsSource = new[] { "Fluent", "Windows 11", "Material", "Office 2019" }, SelectedItem = settings.ThemeFamily };
         var theme = new RadComboBox { ItemsSource = new[] { "Dark", "Light", "High contrast" }, SelectedItem = settings.Theme };
         var fontFamily = new RadComboBox { ItemsSource = new[] { "Segoe UI", "Arial", "Calibri", "Tahoma", "Verdana" }, SelectedItem = settings.FontFamily };
         var fontScale = new RadComboBox { ItemsSource = new[] { "80%", "90%", "100%", "115%", "135%", "155%", "180%" }, SelectedItem = settings.FontScale switch { <= .8 => "80%", <= .9 => "90%", <= 1.0 => "100%", <= 1.15 => "115%", <= 1.35 => "135%", <= 1.55 => "155%", _ => "180%" } };
@@ -324,16 +333,17 @@ public partial class MainWindow : Window
         form.Children.Add(demo);
         form.Children.Add(Text("Demo changes last for the current session. Live mode reads and writes directly to Azure DevOps. Boards summarize the project’s loaded work by state category; team swimlanes and WIP limits are not yet synchronized.", 12, "#93A1B3"));
         form.Children.Add(Label("Accessibility and appearance"));
-        form.Children.Add(Text("Choose a theme, font, and reading size. Larger sizes are applied throughout the workspace and the Markdown reader.", 12, "#93A1B3"));
-        form.Children.Add(Text("Theme", 12, "#A4B7CC", true)); form.Children.Add(theme);
+        form.Children.Add(Text("Choose a Telerik theme family, color variation, font, and reading size. Larger sizes are applied throughout the workspace and the Markdown reader.", 12, "#93A1B3"));
+        form.Children.Add(Text("Telerik theme family", 12, "#A4B7CC", true)); form.Children.Add(themeFamily);
+        form.Children.Add(Text("Color variation", 12, "#A4B7CC", true)); form.Children.Add(theme);
         form.Children.Add(Text("Font", 12, "#A4B7CC", true)); form.Children.Add(fontFamily);
         form.Children.Add(Text("Reading size", 12, "#A4B7CC", true)); form.Children.Add(fontScale);
         var applyAppearance = ActionButton("Apply appearance", () =>
         {
             try
             {
-                var next = settings with { Theme = (string?)theme.SelectedItem ?? "Dark", FontFamily = (string?)fontFamily.SelectedItem ?? "Segoe UI", FontScale = ScaleValue((string?)fontScale.SelectedItem) };
-                SettingsStore.Save(AppContext.BaseDirectory, next); settings = next; UiAppearance.Apply(next); Render(); ShowNotice("Appearance saved.");
+                var next = settings with { ThemeFamily = (string?)themeFamily.SelectedItem ?? "Fluent", Theme = (string?)theme.SelectedItem ?? "Dark", FontFamily = (string?)fontFamily.SelectedItem ?? "Segoe UI", FontScale = ScaleValue((string?)fontScale.SelectedItem) };
+                SettingsStore.Save(AppContext.BaseDirectory, next); settings = next; UiAppearance.Apply(next); RefreshShellThemeStyles(); Render(); ShowNotice("Appearance saved.");
             }
             catch (ArgumentException ex) { ReportError(ex.Message); }
         });
@@ -348,7 +358,7 @@ public partial class MainWindow : Window
             {
                 if (!int.TryParse(limit.Text, out var count)) throw new ArgumentException("Enter a numeric work item limit.");
                 var next = new ClientSettings { ProjectUrl = url.Text.Trim(), PersonalAccessToken = pat.Password.Trim(), Team = team.Text.Trim(), MaxWorkItems = count, UseDemoData = demo.IsChecked == true,
-                    Theme = (string?)theme.SelectedItem ?? settings.Theme, FontFamily = (string?)fontFamily.SelectedItem ?? settings.FontFamily, FontScale = ScaleValue((string?)fontScale.SelectedItem) };
+                    ThemeFamily = (string?)themeFamily.SelectedItem ?? settings.ThemeFamily, Theme = (string?)theme.SelectedItem ?? settings.Theme, FontFamily = (string?)fontFamily.SelectedItem ?? settings.FontFamily, FontScale = ScaleValue((string?)fontScale.SelectedItem) };
                 SettingsStore.Save(AppContext.BaseDirectory, next);
                 CancelReading(); assignedQueue = new([]); readingDetails = null; readingId = null; recentlyViewed.Clear(); recentlyViewedOrder.Clear(); service?.Dispose(); service = null; snapshot = new([], [], []); settings = next;
                 ModeLabel.Text = next.UseDemoData ? "●  DEMO WORKSPACE" : "○  NOT CONNECTED";
@@ -455,9 +465,23 @@ public partial class MainWindow : Window
             foreach (var name in new[] { "Overview", "Board", "Work items", "Dashboards", "Settings" })
             {
                 Go(name); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
-                if (name == "Settings" && FindVisual<RadComboBox>(PageContent).Count() < 3) throw new Exception("Accessibility settings controls are missing");
+                if (name == "Settings" && FindVisual<RadComboBox>(PageContent).Count() < 4) throw new Exception("Accessibility and theme settings controls are missing");
                 UpdateLayout(); Capture(Path.Combine(output, name.Replace(" ", "-").ToLowerInvariant() + ".png"));
             }
+            // Verify the Telerik implicit-style palette can change at runtime without reconstructing the window.
+            UiAppearance.Apply(settings with { Theme = "Light" }); RefreshShellThemeStyles(); Render(); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            if (UiAppearance.Theme != "Light" || ((SolidColorBrush)Application.Current.Resources["ShellBackground"]).Color != (Color)ColorConverter.ConvertFromString("#F4F7FA")! || ((SolidColorBrush)Application.Current.Resources["NoticeBackground"]).Color != (Color)ColorConverter.ConvertFromString("#FFF5D6")! || ((SolidColorBrush)Application.Current.Resources["QueueTitle"]).Color != (Color)ColorConverter.ConvertFromString("#172431")!) throw new Exception("Light theme did not apply");
+            UpdateLayout(); Capture(Path.Combine(output, "theme-light.png"));
+            Go("Assigned to me"); readingTask = SelectReadingAsync(1041, false); await readingTask; await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle); UpdateLayout(); Capture(Path.Combine(output, "theme-light-work.png"));
+            UiAppearance.Apply(settings with { Theme = "High contrast" }); RefreshShellThemeStyles(); Render(); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            if (UiAppearance.Theme != "High contrast" || ((SolidColorBrush)Application.Current.Resources["ShellBackground"]).Color != Colors.Black) throw new Exception("High contrast theme did not apply");
+            foreach (var family in new[] { "Fluent", "Windows 11", "Material", "Office 2019" })
+            {
+                UiAppearance.Apply(settings with { ThemeFamily = family, Theme = "Light" }); RefreshShellThemeStyles(); Render(); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                if (TelerikThemeManager.CurrentFamily != family) throw new Exception(family + " Telerik theme did not apply");
+                UpdateLayout(); Capture(Path.Combine(output, "theme-" + family.Replace(" ", "-").ToLowerInvariant() + ".png"));
+            }
+            UiAppearance.Apply(settings); RefreshShellThemeStyles(); Render();
             Go("Overview"); ShowItem(snapshot.Items[0]); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             UpdateLayout(); Capture(Path.Combine(output, "editor.png"));
             CloseInspector(); Go("Work items");
@@ -476,7 +500,7 @@ public partial class MainWindow : Window
             await RefreshAsync(); if (snapshot.Items.All(i => i.Title != "Smoke-updated work item")) throw new Exception("Refresh lost saved changes");
             await MoveItemAsync(snapshot.Items.Single(i => i.Id == created.Id), "InProgress"); if (snapshot.Items.Single(i => i.Id == created.Id).Category != "InProgress") throw new Exception("Board move failed");
             Width = 1100; Height = 740; Go("Board"); await Dispatcher.InvokeAsync(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle); UpdateLayout(); Capture(Path.Combine(output, "board-compact.png"));
-            File.WriteAllText(Path.Combine(output, "smoke.txt"), "PASS: assigned queue, native description, paged comments, parent/child links, status saves, recent view, compact reader and stale selection protection; six secondary screens rendered; search, type/owner filters, create, editor save, refresh, board state move, and compact board verified. Always uses demo data.");
+            File.WriteAllText(Path.Combine(output, "smoke.txt"), "PASS: assigned queue, native description, hover/F2 edit affordance, Telerik visual HTML editing, Markdown comment creation/editing, visual legacy-comment editing, paged comments, parent/child links, status saves, recent view, compact reader, unsaved-draft tracking, and stale selection protection; six secondary screens rendered; Telerik Fluent/Windows 11/Material/Office 2019 theme-family switching with Dark/Light/High contrast palette switching, search, type/owner filters, create, editor save, refresh, board state move, and compact board verified. Always uses demo data.");
         }
         catch (Exception ex) { File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "smoke-error.txt"), ex.ToString()); hasDraft = null; Application.Current.Shutdown(1); }
         finally { hasDraft = null; Close(); }

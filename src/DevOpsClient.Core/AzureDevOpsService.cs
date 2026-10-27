@@ -69,6 +69,16 @@ public sealed partial class AzureDevOpsService : IProjectService
         if (edit.Priority is < 1 or > 4) throw new ArgumentException("Priority must be 1 to 4.");
         var operations = new List<object> { new { op = "test", path = "/rev", value = (object)item.Revision }, new { op = "add", path = "/fields/System.Title", value = (object)edit.Title.Trim() }, new { op = "add", path = "/fields/System.State", value = (object)edit.State }, new { op = "add", path = "/fields/System.Tags", value = (object)edit.Tags } };
         if (edit.Priority != item.Priority) operations.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.Priority", value = (object)edit.Priority });
+        if (edit.Description != null)
+        {
+            ValidateRichText(edit.Description, "Description");
+            operations.Add(new { op = "add", path = "/fields/" + item.DescriptionField, value = (object)edit.Description });
+        }
+        if (edit.AcceptanceCriteria != null)
+        {
+            ValidateRichText(edit.AcceptanceCriteria, "Acceptance criteria");
+            operations.Add(new { op = "add", path = "/fields/Microsoft.VSTS.Common.AcceptanceCriteria", value = (object)edit.AcceptanceCriteria });
+        }
         using var doc = await SendAsync(HttpMethod.Patch, $"_apis/wit/workitems/{item.Id}?api-version=7.1", Patch(operations.ToArray()), token);
         return ParseItem(doc.RootElement);
     }
@@ -81,6 +91,8 @@ public sealed partial class AzureDevOpsService : IProjectService
     }
     private static void ValidateTitle(string title)
     { if (string.IsNullOrWhiteSpace(title) || title.Trim().Length > 255) throw new ArgumentException("Enter a title between 1 and 255 characters."); }
+    private static void ValidateRichText(string text, string name)
+    { if (text.Length > 1_000_000) throw new ArgumentException(name + " is too large to save."); }
     private static StringContent Patch(object[] operations) => new(JsonSerializer.Serialize(operations), Encoding.UTF8, "application/json-patch+json");
     private async Task<JsonDocument> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken token)
     {
@@ -107,9 +119,13 @@ public sealed partial class AzureDevOpsService : IProjectService
         var type = Text(fields, "System.WorkItemType", "Task");
         var state = Text(fields, "System.State");
         var assigned = fields.TryGetProperty("System.AssignedTo", out var a) ? a.ValueKind == JsonValueKind.Object ? Text(a, "displayName", "Unassigned") : a.GetString() ?? "Unassigned" : "Unassigned";
+        var systemDescription = Text(fields, "System.Description");
+        var reproductionSteps = Text(fields, "Microsoft.VSTS.TCM.ReproSteps");
         return new() { Id = element.GetProperty("id").GetInt32(), Revision = element.GetProperty("rev").GetInt32(),
             Title = Text(fields, "System.Title"), Type = type, State = state, AssignedTo = assigned,
-            Iteration = Text(fields, "System.IterationPath"), Tags = Text(fields, "System.Tags"), Description = Text(fields, "System.Description") is { Length: > 0 } description ? description : Text(fields, "Microsoft.VSTS.TCM.ReproSteps"), AcceptanceCriteria = Text(fields, "Microsoft.VSTS.Common.AcceptanceCriteria"),
+            Iteration = Text(fields, "System.IterationPath"), Tags = Text(fields, "System.Tags"), Description = systemDescription.Length > 0 ? systemDescription : reproductionSteps,
+            DescriptionField = systemDescription.Length > 0 || reproductionSteps.Length == 0 ? "System.Description" : "Microsoft.VSTS.TCM.ReproSteps",
+            AcceptanceCriteria = Text(fields, "Microsoft.VSTS.Common.AcceptanceCriteria"),
             Priority = (int)Number(fields, "Microsoft.VSTS.Common.Priority", 2), Points = Number(fields, "Microsoft.VSTS.Scheduling.StoryPoints", Number(fields, "Microsoft.VSTS.Scheduling.Effort")),
             ChangedAt = DateTimeOffset.TryParse(Text(fields, "System.ChangedDate"), out var date) ? date : DateTimeOffset.MinValue,
             Category = types.FirstOrDefault(t => t.Name == type)?.States.FirstOrDefault(s => s.Name == state)?.Category ?? "Unknown" };

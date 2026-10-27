@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 namespace DevOpsClient.Core;
@@ -82,12 +83,55 @@ public sealed partial class AzureDevOpsService
         var root = doc.RootElement;
         var comments = root.GetProperty("comments").EnumerateArray()
             .Where(c => !c.TryGetProperty("isDeleted", out var deleted) || !deleted.GetBoolean())
-            .Select(c => {
-                var rendered = Text(c, "renderedText"); var html = rendered.Length > 0 || Text(c, "format").Equals("html", StringComparison.OrdinalIgnoreCase);
-                return new WorkItemComment((int)Number(c, "id", Number(c, "commentId")), c.TryGetProperty("createdBy", out var author) ? Text(author, "displayName", "Unknown author") : "Unknown author",
-                    DateTimeOffset.TryParse(Text(c, "createdDate"), out var date) ? date : DateTimeOffset.MinValue,
-                    rendered.Length > 0 ? rendered : Text(c, "text"), html);
-            }).ToArray();
+            .Select(ParseComment).ToArray();
         return new(comments, Text(root, "continuationToken") is { Length: > 0 } next ? next : null, (int)Number(root, "totalCount", comments.Length));
+    }
+
+    public async Task<WorkItemComment> AddCommentAsync(int id, string text, CancellationToken token)
+    {
+        ValidateComment(id, text);
+        using var doc = await SendAsync(HttpMethod.Post, $"_apis/wit/workitems/{id}/comments?format=markdown&api-version=7.1-preview.4",
+            CommentBody(text), token);
+        var added = ParseComment(doc.RootElement);
+        return added with { EditableText = added.EditableText.Length > 0 ? added.EditableText : text, IsMarkdown = true };
+    }
+
+    public async Task<WorkItemComment> UpdateCommentAsync(int id, WorkItemComment comment, string text, CancellationToken token)
+    {
+        ValidateComment(id, text);
+        if (comment.Id <= 0) throw new ArgumentException("Choose a valid comment to edit.");
+        var format = comment.IsMarkdown || !comment.IsHtml ? "markdown" : "html";
+        using var doc = await SendAsync(HttpMethod.Patch, $"_apis/wit/workitems/{id}/comments/{comment.Id}?format={format}&api-version=7.1-preview.4",
+            CommentBody(text), token);
+        var updated = ParseComment(doc.RootElement);
+        return updated with
+        {
+            EditableText = updated.EditableText.Length > 0 ? updated.EditableText : text,
+            IsMarkdown = format == "markdown",
+            IsHtml = updated.IsHtml || format == "html"
+        };
+    }
+
+    private static void ValidateComment(int id, string text)
+    {
+        if (id <= 0) throw new ArgumentException("Enter a positive work item number.");
+        if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Enter a comment before saving.");
+        if (text.Length > 150_000) throw new ArgumentException("The comment is too large to save.");
+    }
+
+    private static StringContent CommentBody(string text) =>
+        new(JsonSerializer.Serialize(new { text }), Encoding.UTF8, "application/json");
+
+    private static WorkItemComment ParseComment(JsonElement comment)
+    {
+        var raw = Text(comment, "text");
+        var rendered = Text(comment, "renderedText");
+        var format = Text(comment, "format");
+        var markdown = format.Equals("markdown", StringComparison.OrdinalIgnoreCase);
+        var html = rendered.Length > 0 || format.Equals("html", StringComparison.OrdinalIgnoreCase);
+        return new((int)Number(comment, "id", Number(comment, "commentId")),
+            comment.TryGetProperty("createdBy", out var author) ? Text(author, "displayName", "Unknown author") : "Unknown author",
+            DateTimeOffset.TryParse(Text(comment, "createdDate"), out var date) ? date : DateTimeOffset.MinValue,
+            rendered.Length > 0 ? rendered : raw, html, raw, markdown, (int)Number(comment, "version", 1));
     }
 }

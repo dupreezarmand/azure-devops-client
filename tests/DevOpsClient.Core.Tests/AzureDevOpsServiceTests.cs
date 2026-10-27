@@ -83,6 +83,58 @@ public sealed class AzureDevOpsServiceTests
     }
 
     [Fact]
+    public async Task Content_update_uses_the_original_description_field_and_revision_guard()
+    {
+        using var client = new AzureDevOpsService(Live(), new FakeHandler(async request =>
+        {
+            Assert.Equal(HttpMethod.Patch, request.Method);
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            var operations = body.RootElement.EnumerateArray().ToArray();
+            Assert.Contains(operations, operation => operation.GetProperty("path").GetString() == "/rev" && operation.GetProperty("value").GetInt32() == 9);
+            Assert.Contains(operations, operation => operation.GetProperty("path").GetString() == "/fields/Microsoft.VSTS.TCM.ReproSteps" && operation.GetProperty("value").GetString() == "<p>Edited</p>");
+            Assert.Contains(operations, operation => operation.GetProperty("path").GetString() == "/fields/Microsoft.VSTS.Common.AcceptanceCriteria" && operation.GetProperty("value").GetString() == "<p>Verified</p>");
+            return Json("{\"id\":42,\"rev\":10,\"fields\":{\"System.Title\":\"Bug\",\"Microsoft.VSTS.TCM.ReproSteps\":\"<p>Edited</p>\",\"Microsoft.VSTS.Common.AcceptanceCriteria\":\"<p>Verified</p>\"}}");
+        }));
+
+        var item = new WorkItem { Id = 42, Revision = 9, Title = "Bug", State = "New", DescriptionField = "Microsoft.VSTS.TCM.ReproSteps" };
+        var updated = await client.UpdateAsync(item, new("Bug", "New", "", 2, Description: "<p>Edited</p>", AcceptanceCriteria: "<p>Verified</p>"), default);
+
+        Assert.Equal("<p>Edited</p>", updated.Description);
+        Assert.Equal("<p>Verified</p>", updated.AcceptanceCriteria);
+    }
+
+    [Fact]
+    public async Task Comment_writes_use_markdown_and_preserve_the_editable_source()
+    {
+        var calls = 0;
+        using var client = new AzureDevOpsService(Live(), new FakeHandler(async request =>
+        {
+            calls++;
+            Assert.Contains("format=markdown", request.RequestUri!.Query);
+            using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync());
+            if (calls == 1)
+            {
+                Assert.Equal(HttpMethod.Post, request.Method);
+                Assert.EndsWith("/workitems/42/comments", request.RequestUri.AbsolutePath, StringComparison.OrdinalIgnoreCase);
+                Assert.Equal("New **comment**", body.RootElement.GetProperty("text").GetString());
+                return Json("{\"id\":51,\"version\":1,\"text\":\"New **comment**\",\"format\":\"markdown\",\"renderedText\":\"<p>New <strong>comment</strong></p>\",\"createdBy\":{\"displayName\":\"Ada\"},\"createdDate\":\"2026-10-24T10:00:00Z\"}");
+            }
+            Assert.Equal(HttpMethod.Patch, request.Method);
+            Assert.EndsWith("/workitems/42/comments/51", request.RequestUri.AbsolutePath, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("Edited **comment**", body.RootElement.GetProperty("text").GetString());
+            return Json("{\"id\":51,\"version\":2,\"text\":\"Edited **comment**\",\"format\":\"markdown\",\"renderedText\":\"<p>Edited <strong>comment</strong></p>\",\"createdBy\":{\"displayName\":\"Ada\"},\"createdDate\":\"2026-10-24T10:00:00Z\"}");
+        }));
+
+        var added = await client.AddCommentAsync(42, "New **comment**", default);
+        var edited = await client.UpdateCommentAsync(42, added, "Edited **comment**", default);
+
+        Assert.Equal("New **comment**", added.EditableText);
+        Assert.True(added.IsMarkdown);
+        Assert.Equal("Edited **comment**", edited.EditableText);
+        Assert.Equal(2, edited.Version);
+    }
+
+    [Fact]
     public async Task Create_encodes_type_and_sends_title()
     {
         using var client = new AzureDevOpsService(Live(), new FakeHandler(async request =>
@@ -150,6 +202,8 @@ public sealed class AzureDevOpsServiceTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => client.CreateAsync("Task", " ", default));
         await Assert.ThrowsAsync<ArgumentException>(() => client.UpdateAsync(new(), new("Valid", "New", "", 0), default));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.AddCommentAsync(42, " ", default));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.UpdateCommentAsync(42, new(1, "Ada", DateTimeOffset.Now, "", false), " ", default));
     }
 
     [Fact]
@@ -235,7 +289,9 @@ public sealed class AzureDevOpsServiceTests
         Assert.Equal("<p>Readable</p>", result.Comments[0].Text);
         Assert.True(result.Comments[0].IsHtml);
         Assert.Equal("Ada", result.Comments[0].Author);
+        Assert.Equal("raw", result.Comments[0].EditableText);
         Assert.False(result.Comments[1].IsHtml);
+        Assert.True(result.Comments[1].IsMarkdown);
         Assert.Equal(2, result.Comments[1].Id);
         Assert.Equal("next", result.ContinuationToken);
         Assert.Equal(3, result.TotalCount);
